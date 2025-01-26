@@ -1,5 +1,3 @@
-# Groupie Tracker
-
 ![Project Banner](templates/assets/Readme-Banner.svg) <!-- Add actual banner image if available -->
 
 ## Welcome
