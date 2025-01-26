@@ -1,6 +1,6 @@
 # Groupie Tracker
 
-![Project Banner](static/assets/Readme-Banner.svg) <!-- Add actual banner image if available -->
+![Project Banner](templates/assets/Readme-Banner.svg) <!-- Add actual banner image if available -->
 
 ## Welcome
 Explore artist information, concert dates, and locations through a clean interface that aggregates data from multiple APIs. Discover band histories and tour details in one centralized platform.
