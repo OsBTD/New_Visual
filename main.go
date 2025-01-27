@@ -6,6 +6,8 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 // Artists represents the artist data structure
@@ -38,6 +40,7 @@ type ErrorPage struct {
 	Is405   bool
 	Is404   bool
 	Is500   bool
+	Is403   bool
 }
 
 // fetchData makes an HTTP GET request and decodes the JSON response
@@ -62,12 +65,80 @@ func handleError(w http.ResponseWriter, tmpl *template.Template, code int, messa
 		Is405:   code == http.StatusMethodNotAllowed,
 		Is404:   code == http.StatusNotFound,
 		Is500:   code == http.StatusInternalServerError,
+		Is403:   code == http.StatusForbidden,
 	}
 	w.WriteHeader(code)
 	if err := tmpl.Execute(w, errorPage); err != nil {
 		log.Printf("Error executing error template: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
+}
+
+// restrict is a middleware that restricts access to specific paths, /static and /images in this case
+// it takes a next(handlerfunc) and returns an http handler function that checks if our path is one of the restricted ones if so the file to parse and execute would be the 403 template and status is 403 forbidden
+// if the path doesn't figure in our restricted ones the handlerfunc is returned the usual way and the file to be parsed and executed would be determined
+func Restrict(next http.HandlerFunc) http.HandlerFunc {
+	templates := make(map[string]*template.Template)
+	templateFiles := map[string]string{
+		"index":  "templates/index.html",
+		"error":  "templates/error.html",
+		"about":  "templates/about.html",
+		"readme": "templates/readme.html",
+	}
+
+	for name, file := range templateFiles {
+		tmpl, err := template.ParseFiles(file)
+		if err != nil {
+			log.Fatalf("Error parsing template %s: %v", name, err)
+		}
+		templates[name] = tmpl
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		restrictedPaths := []string{"/static", "/assets", "/static/assets"}
+		for _, path := range restrictedPaths {
+			if r.URL.Path == path || r.URL.Path == path+"/" {
+				handleError(w, templates["error"], http.StatusForbidden, "Access Denied")
+				return
+			}
+		}
+		next(w, r)
+	}
+}
+
+// this custom file sever allows to customize the errors in file serving
+// for example if a file we're trying to serve doesn't exist or if we don't have the necessary permissions
+// otherwise if a file doesn't exist for example a standard 404 error would be displayed
+// it takes the root as parameter and returns a handler
+// it uses os.Stat which returns meta data about a file on our os system
+// and returns an error which could be of two type
+// either the file doesn't exist or permissions denied
+// we're using serve file instead of fileserver cause it only serves one file instead of a whole directory
+func customFileServer(root string) http.Handler {
+	templates := make(map[string]*template.Template)
+	templateFiles := map[string]string{
+		"index":  "templates/index.html",
+		"error":  "templates/error.html",
+		"about":  "templates/about.html",
+		"readme": "templates/readme.html",
+	}
+
+	for name, file := range templateFiles {
+		tmpl, err := template.ParseFiles(file)
+		if err != nil {
+			log.Fatalf("Error parsing template %s: %v", name, err)
+		}
+		templates[name] = tmpl
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := filepath.Join(root, r.URL.Path)
+		if _, err := os.Stat(path); err != nil {
+			handleError(w, templates["error"], http.StatusNotFound, "Page not found")
+			return
+		}
+		http.ServeFile(w, r, path)
+	})
 }
 
 func main() {
@@ -186,13 +257,13 @@ func main() {
 	})
 
 	// Serve static files
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("templates"))))
+	http.Handle("/static/", http.StripPrefix("/static/", customFileServer("templates")))
+	http.Handle("/assets/", customFileServer("templates"))
 
 	// Start server
 	port := ":8080"
 	fmt.Printf("Server started at http://localhost%s\n", port)
-	if err := http.ListenAndServe(port, nil); err != nil {
+	if err := http.ListenAndServe(port, Restrict(http.DefaultServeMux.ServeHTTP)); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }
-//static errors
