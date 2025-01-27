@@ -10,61 +10,11 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap"
         rel="stylesheet">
-    <style>
-        body {
-            background-color: rgb(36, 36, 36);
-            display: grid;
-            grid-template-rows: auto, auto, auto;
-            justify-content: center;
-            align-items: center;
+    <link rel="stylesheet" href="/static/style.css">
 
-        }
-
-        .Menu {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: auto;
-            background-image: url('/static/assets/Container.svg');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            z-index: 10;
-            transform: translateY(100%);
-
-        }
-
-        button {
-            border: none;
-            background: none;
-            outline: none;
-            padding: 1rem;
-            margin: 0;
-            cursor: pointer;
-        }
-
-
-        .error-title {
-            grid-row: 2;
-            display: flex;
-            background-color: rgba(240, 248, 255, 0.562);
-            border-radius: 50px;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .Home_Button {
-            grid-row: 3;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-
-        }
-    </style>
 </head>
 
-<body>
+<body class="error-body">
     <div class="Menu">
         <a href="/">
             <button type="button" class="Home">
@@ -96,10 +46,9 @@
         <img src="static/assets/Error404.svg">
         {{else if .Is500}}
         <img src="static/assets/Error500.svg">
+        {{else if .Is403}}
+        <img src="static/assets/Error403.svg">
         {{end}}
-    </div>
-    <div class="Home_Button">
-        <img src="static/assets/HomeButton.svg">
     </div>
 </body>
 
